@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+
+		<meta name="description" content="An infinitely hypnotic canvas animation" />
+		<meta name="author" content="Hakim El Hattab" />
+
+		<meta http-equiv="X-UA-Compatible" content="chrome=1">
+
+		<title>Hypnos</title>
+
+		<style>
+			* {
+				margin: 0;
+				padding: 0;
+			}
+
+			html, body {
+				height: 100%;
+			}
+
+			.main-container {
+				width: 100%;
+				height: 100%;
+				background: #fff;
+			}
+
+			canvas {
+				display: block;
+				margin: 50px auto;
+			}
+
+			p {
+				position: relative;
+				text-align: center;
+				margin-top: 10px;
+				font-family: monospace;
+			}
+
+			.twitter-share-button {
+				position: absolute;
+				bottom: 10px;
+				left: 50%;
+				margin-left: -28px;
+			}
+		</style>
+
+		<link href='http://fonts.googleapis.com/css?family=Molengo' rel='stylesheet' type='text/css'>
+
+	</head>
+	<body>
+
+		<div class="main-container">
+
+			<p>Hypnos by <a href="http://twitter.com/hakimel">@hakimel</a> / <a href="http://hakim.se">http://hakim.se</a></p>
+			<a href="https://twitter.com/share" class="twitter-share-button" data-url="http://lab.hakim.se/hypnos/" data-text="Hypnos: An infinite hypnotic animation from @hakimel" data-count="none">Tweet</a>
+			<canvas></canvas>
+
+		</div>
+
+		<script>
+
+			/**
+			 * Hypnos by Hakim El Hattab (@hakimel, http://hakim.se)
+			 *
+			 * Inspired by http://patakk.tumblr.com/post/33304597365
+			 */
+			(function() {
+
+				var canvas = document.querySelector( 'canvas' ),
+					context = canvas.getContext( '2d' ),
+
+					width = window.innerWidth * 0.7,
+					height = window.innerHeight * 0.7,
+
+					radius = Math.min( width, height ) * 0.5,
+
+					// Number of layers
+					quality = 180,
+
+					// Layer instances
+					layers = [],
+
+					// Width/height of layers
+					layerSize = radius * 0.25,
+
+					// Layers that overlap to create the infinity illusion
+					layerOverlap = Math.round( quality * 0.1 );
+
+				function initialize() {
+
+					for( var i = 0; i < quality; i++ ) {
+						layers.push({
+							x: width/2 + Math.sin( i / quality * 2 * Math.PI ) * ( radius - layerSize ),
+							y: height/2 + Math.cos( i / quality * 2 * Math.PI ) * ( radius - layerSize ),
+							r: ( i / quality ) * Math.PI
+						});
+					}
+
+					resize();
+					update();
+
+				}
+
+				function resize() {
+
+					canvas.width = width;
+					canvas.height = height;
+
+				}
+
+				function update() {
+
+					requestAnimationFrame( update );
+
+					step();
+					clear();
+					paint();
+
+				}
+
+				// Takes a step in the simulation
+				function step () {
+
+					for( var i = 0, len = layers.length; i < len; i++ ) {
+
+						layers[i].r += 0.01;
+
+					}
+
+				}
+
+				// Clears the painting
+				function clear() {
+
+					context.clearRect( 0, 0, canvas.width, canvas.height );
+
+				}
+
+				// Paints the current state
+				function paint() {
+
+					// Number of layers in total
+					var layersLength = layers.length;
+
+					// Draw the overlap layers
+					for( var i = layersLength - layerOverlap, len = layersLength; i < len; i++ ) {
+
+						context.save();
+						context.globalCompositeOperation = 'destination-over';
+						paintLayer( layers[i] );
+						context.restore();
+
+					}
+
+					// Cut out the overflow layers using the first layer as a mask
+					context.save();
+					context.globalCompositeOperation = 'destination-in';
+					paintLayer( layers[0], true );
+					context.restore();
+
+					// // Draw the normal layers underneath the overlap
+					for( var i = 0, len = layersLength; i < len; i++ ) {
+
+						context.save();
+						context.globalCompositeOperation = 'destination-over';
+						paintLayer( layers[i] );
+						context.restore();
+
+					}
+
+				}
+
+				// Pains one layer
+				function paintLayer( layer, mask ) {
+					size = layerSize + ( mask ? 10 : 0 );
+					size2 = size / 2;
+
+					context.translate( layer.x, layer.y );
+					context.rotate( layer.r );
+
+					// No stroke if this is a mask
+					if( !mask ) {
+						context.strokeStyle = '#000';
+						context.lineWidth = 1;
+						context.strokeRect( -size2, -size2, size, size );
+					}
+
+					context.fillStyle = '#fff';
+					context.fillRect( -size2, -size2, size, size );
+
+				}
+
+				/**
+				 * rAF polyfill.
+				 */
+				(function() {
+					var lastTime = 0;
+					var vendors = ['ms', 'moz', 'webkit', 'o'];
+					for(var x = 0; x < vendors.length && !window.requestAnimationFrame; ++x) {
+						window.requestAnimationFrame = window[vendors[x]+'RequestAnimationFrame'];
+						window.cancelAnimationFrame = 
+						  window[vendors[x]+'CancelAnimationFrame'] || window[vendors[x]+'CancelRequestAnimationFrame'];
+					}
+
+					if (!window.requestAnimationFrame)
+						window.requestAnimationFrame = function(callback, element) {
+							var currTime = new Date().getTime();
+							var timeToCall = Math.max(0, 16 - (currTime - lastTime));
+							var id = window.setTimeout(function() { callback(currTime + timeToCall); }, 
+							  timeToCall);
+							lastTime = currTime + timeToCall;
+							return id;
+						};
+
+					if (!window.cancelAnimationFrame)
+						window.cancelAnimationFrame = function(id) {
+							clearTimeout(id);
+						};
+				}());
+
+				initialize();
+
+			})();
+
+
+		</script>
+
+		<script src="http://hakim.se/assets/promoter/promoter.js"></script>
+
+		<!-- Third party -->
+
+		<script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0];if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src="http://platform.twitter.com/widgets.js";fjs.parentNode.insertBefore(js,fjs);}}(document,"script","twitter-wjs");</script>
+
+		<script type="text/javascript">
+		var _gaq = _gaq || [];
+		_gaq.push(['_setAccount', 'UA-15240703-1']);
+		_gaq.push(['_trackPageview']);
+
+		(function() {
+			var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+			ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+			var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+		})();
+		</script>
+
+	</body>
+</html>
